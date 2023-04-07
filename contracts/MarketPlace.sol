@@ -33,10 +33,6 @@ contract MarketPlace {
         require(contractErc721.ownerOf(_tokenId) == msg.sender, "not have that token");
         saleList[_tokenId] = Sales(_contractAddress,msg.sender, _tokenId, _price,1,_ERC20Contract);
     }
-    
-    function getSale(uint256 _tokenId) external view returns(uint256) {
-         return saleList[_tokenId].price;
-    }
     function saleForERC1155(
         address _contractAddress,
         uint256 _tokenId,
@@ -57,10 +53,13 @@ contract MarketPlace {
         if(saleList[_tokenId].ERC20Contract != address(0)) {
             IERC20 token = IERC20(saleList[_tokenId].ERC20Contract);
             uint256 amount = saleList[_tokenId].price;
-            token.transferFrom(msg.sender, ownerErc721Token, amount);
+            uint256 amountFees = (55*amount)/10000;
+            token.transferFrom(msg.sender, ownerErc721Token, (amount -(55*amount)/10000));
+            token.transferFrom(msg.sender, address(this), amountFees);
         }
         else {
-            (bool sent, ) = ownerErc721Token.call{value: msg.value}("");
+            uint256 remainingAmount = msg.value - (55*msg.value)/10000;
+            (bool sent, ) = ownerErc721Token.call{value: remainingAmount}("");
             require(sent, "fail to send");
         }
     }
@@ -72,11 +71,14 @@ contract MarketPlace {
 
         if(saleList[_tokenId].ERC20Contract != address(0)) {
             IERC20 token = IERC20(saleList[_tokenId].ERC20Contract);
-            uint256 amount = saleList[_tokenId].price;
-            token.transferFrom(msg.sender, ownerErc1155Token, amount);
+            uint amount = saleList[_tokenId].price;
+            uint256 amountFees = (55*amount)/10000;
+            token.transferFrom(msg.sender, ownerErc1155Token, (amount -(55*amount)/10000));
+            token.transferFrom(msg.sender, address(this), amountFees);
         }
         else {
-            (bool sent, ) = ownerErc1155Token.call{value: msg.value}("");
+            uint256 remainingAmount = msg.value - (55*msg.value)/10000;
+            (bool sent, ) = ownerErc1155Token.call{value: remainingAmount}("");
             require(sent, "fail to send");
         }
     }
