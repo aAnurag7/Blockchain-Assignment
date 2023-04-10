@@ -70,7 +70,8 @@ contract Coins is IERC20 {
   }
 
   function transferFrom(address _from, address _to, uint256 _value) public returns (bool){
-    require(allowed[_from][msg.sender]>= _value, "not enough token at owner");
+    require(balances[_from] >= _value, "not enough token at owner");
+    require(allowed[_from][msg.sender]>= _value, "not enough token approved");
     allowed[_from][msg.sender] = allowed[_from][msg.sender] - _value;
     balances[_from] -= _value;
     balances[_to] += _value;
@@ -81,15 +82,15 @@ contract Coins is IERC20 {
   function mint(address _to, uint256 _value) public returns (bool) {
     require(owner == msg.sender, "Unauthorized");
     TotalSupply += _value;
-    balances[_to] += _value;   
+    balances[_to] += _value; 
+    emit Transfer(address(0), _to , _value);  
     return true;
   }
-   function _burn(address _account, uint256 _amount) internal {
+   function _burn(address _account, uint256 _amount) external {
     require(_account == msg.sender, "not authorized");
     require(_amount <= balances[_account]);
     TotalSupply = TotalSupply - _amount;
     balances[_account] = balances[_account] - _amount;
     emit Transfer(_account, address(0), _amount);
   }
-
 }
