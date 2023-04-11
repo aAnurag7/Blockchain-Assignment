@@ -1,0 +1,35 @@
+{
+  "language": "Solidity",
+  "sources": {
+    "contracts/token.sol": {
+      "content": "// SPDX-License-Identifier: GPL-3.0\npragma solidity 0.8.18;\n\ninterface IERC20 {\n  function totalSupply() external view returns (uint256);\n  function balanceOf(address who) external view returns (uint256);\n  function allowance(address owner, address spender) external view returns (uint256);\n  function transfer(address to, uint256 value) external returns (bool);\n  function approve(address spender, uint256 value) external returns (bool);\n  function transferFrom(address from, address to, uint256 value) external returns (bool);\n\n  event Transfer(address indexed from,address indexed to,uint256 value);\n\n  event Approval(address indexed owner,address indexed spender,uint256 value);\n}\n\n/// @title A Contract for token\n/// @notice You can use this contract to make token\ncontract ERC20 is IERC20 {\n  string private symbol;\n  string private name;\n  uint8  private decimals;\n  address private owner;\n  mapping (address => uint256) private balances;\n  mapping (address => mapping (address => uint256)) private allowed;\n  uint256 private TotalSupply;\n    constructor(string memory _symbol, string memory _name,uint8 _decimals){\n        symbol = _symbol;\n        name = _name;\n        decimals = _decimals;\n        TotalSupply = 1000;\n        owner = msg.sender;\n        balances[msg.sender] = TotalSupply;\n        emit Transfer(address(0), msg.sender, TotalSupply);\n    }\n  \n  function getName() external view returns (string memory) {\n    return name;\n  }\n\n   function getSymbol() external view returns (string memory) {\n    return symbol;\n  }\n \n  function totalSupply() external view returns (uint256) {\n    return TotalSupply;\n  }\n\n  function balanceOf(address _owner) external view returns (uint256) {\n    return balances[_owner];\n  }\n\n  function allowance(address _owner,address _spender) external view returns (uint256) {\n    return allowed[_owner][_spender];\n  }\n\n  function transfer(address _to, uint256 _value) public returns (bool) {\n    require(msg.sender == owner, \"not authorized\");\n    require(_value <= balances[owner],\"not enough token\");\n    balances[owner] -= _value;\n    balances[_to] += _value;\n    emit Transfer(owner, _to, _value);\n    return true;\n  }\n\n  function approve(address _spender, uint256 _value) public returns (bool){\n    require(msg.sender == owner, \"not authorized approval\");\n    require(_value <= balances[_spender], \"not enough token\");\n    allowed[_spender][owner] = _value;\n    emit Approval( _spender ,owner , _value);\n    return true;\n  }\n\n  function transferFrom(address _from, address _to, uint256 _value) public returns (bool){\n    require(msg.sender == owner, \"not authorized\");\n    require(allowed[_from][owner]>= _value, \"not enough token\");\n    allowed[_from][owner] = allowed[_from][owner] - _value;\n    balances[_from] -= _value;\n    balances[_to] += _value;\n    emit Transfer(_from , _to , _value);\n    return true;\n  }\n  \n  function mint(address _to, uint256 _value) public returns (bool) {\n    require(owner == msg.sender, \"Unauthorized\");\n    TotalSupply += _value;\n    balances[_to] += _value;   \n    return true;\n  }\n   function _burn(address _account, uint256 _amount) internal {\n    require(_amount <= balances[_account]);\n    TotalSupply = TotalSupply - _amount;\n    balances[_account] = balances[_account] - _amount;\n    emit Transfer(_account, address(0), _amount);\n  }\n}\n"
+    }
+  },
+  "settings": {
+    "optimizer": {
+      "enabled": false,
+      "runs": 200
+    },
+    "outputSelection": {
+      "*": {
+        "*": [
+          "abi",
+          "evm.bytecode",
+          "evm.deployedBytecode",
+          "evm.methodIdentifiers",
+          "metadata",
+          "devdoc",
+          "userdoc",
+          "storageLayout",
+          "evm.gasEstimates"
+        ],
+        "": [
+          "ast"
+        ]
+      }
+    },
+    "metadata": {
+      "useLiteralContent": true
+    }
+  }
+}
