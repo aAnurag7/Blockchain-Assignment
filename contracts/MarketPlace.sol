@@ -8,33 +8,23 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 
 contract MarketPlace {
-    
-    event TransferToken(address indexed from, address indexed to, uint256 tokenId, uint256 amount);
-    event WithDraw(address indexed from , address indexed to, uint256 amount);
-    address private MarketPlaceOwner;
-    IERC20 private token;
+
+    event TransferToken(address indexed from, address indexed to, uint256 tokenId, uint256 amount);    address public MarketPlaceOwner;
+    IERC20 public token;
     struct Sales{
         address contractAddress;
-        address owner;
         uint256 tokenId;
         uint256 price;
         uint256 amount;
-    }
+    } 
+    mapping(uint256 =>  mapping(address => Sales)) public saleList;
     bool internal locked;
-    mapping(uint256 => Sales) public saleList;
 
     modifier AvoidReentrancy() {
         require(!locked, "No re-entrancy");
         locked = true;
         _;
         locked = false;
-    }
-
-    modifier check(uint256 _tokenId) {
-        if(saleList[_tokenId].owner != address(0)){
-           require(saleList[_tokenId].owner == msg.sender, "not token sale owner");
-        }
-        _;
     }
 
     /// @notice deploy market place contract
@@ -57,10 +47,10 @@ contract MarketPlace {
         address _contractAddress,
         uint256 _tokenId,
         uint256 _price
-    ) external check(_tokenId) {
+    ) external {
         IERC721 contractErc721 = IERC721(_contractAddress);
         require(contractErc721.ownerOf(_tokenId) == msg.sender, "not have that token");
-        saleList[_tokenId] = Sales(_contractAddress,msg.sender, _tokenId, _price,1);
+        saleList[_tokenId][msg.sender] = Sales(_contractAddress, _tokenId, _price,1);
     }
 
     /// @notice create sale for ERC1155 token
@@ -74,61 +64,60 @@ contract MarketPlace {
         uint256 _tokenId,
         uint256 _price,
         uint256 _amount
-    ) external check(_tokenId) {
+    ) external {
         IERC1155 contractErc1155 = IERC1155(_contractAddress);
         require(contractErc1155.balanceOf(msg.sender,_tokenId) >= _amount, "not have that token");
-        saleList[_tokenId] = Sales(_contractAddress,msg.sender, _tokenId, _price, _amount);
+        saleList[_tokenId][msg.sender] = Sales(_contractAddress, _tokenId, _price, _amount);
     }
 
     /// @notice create buy for ERC721 token
     /// @dev send sale token to msg.sender and recieve payment in terms of eth or ERC20 token
     /// @param _tokenId token ID of token that will add in saleList
-    function buyERC721(uint256 _tokenId) public payable AvoidReentrancy {
-        IERC721 contractErc721 = IERC721(saleList[_tokenId].contractAddress);
-        address ownerErc721Token = saleList[_tokenId].owner;
-        contractErc721.transferFrom(ownerErc721Token, msg.sender, _tokenId);
+    function buyERC721(uint256 _tokenId, address _owner) public payable AvoidReentrancy {
+        IERC721 contractErc721 = IERC721(saleList[_tokenId][_owner].contractAddress);
+        contractErc721.transferFrom(_owner, msg.sender, _tokenId);
 
         if(msg.value == 0) {
-            uint256 TotalAmount = saleList[_tokenId].price;
+            uint256 TotalAmount = saleList[_tokenId][_owner].price;
             uint256 Fees = (55*TotalAmount)/10000;
-            token.transferFrom(msg.sender, ownerErc721Token, (TotalAmount - Fees));
+            uint256 remainAmount = TotalAmount - Fees;
+            token.transferFrom(msg.sender, _owner, remainAmount);
             token.transferFrom(msg.sender, address(this), Fees);
         }
         else {
             uint256 remainingAmount = msg.value - (55*msg.value)/10000;
-            (bool sent, ) = ownerErc721Token.call{value: remainingAmount}("");
+            (bool sent, ) = _owner.call{value: remainingAmount}("");
             require(sent, "fail to send");
         }
-        delete saleList[_tokenId];
-        emit TransferToken(msg.sender, ownerErc721Token, _tokenId,1);
+        delete saleList[_tokenId][_owner];
+        emit TransferToken(msg.sender, _owner, _tokenId,1);
     }
 
     /// @notice create buy for ERC1155 token
     /// @dev send sale token to msg.sender and recieve payment in terms of eth or ERC20 token
     /// @param _tokenId token Id of token that will send to msg.sender
     /// @param _amount amount of token that will send to msg.sender
-    function buyERC1155(uint256 _tokenId, uint256 _amount) public payable AvoidReentrancy {
-        require(_amount <= saleList[_tokenId].amount, "amount must be less than selling token amount");
-        IERC1155 contractErc1155 = IERC1155(saleList[_tokenId].contractAddress);
-        address ownerErc1155Token = saleList[_tokenId].owner;
-        saleList[_tokenId].amount -= _amount;
-        contractErc1155.safeTransferFrom(ownerErc1155Token, msg.sender, _tokenId, _amount,"");
+    function buyERC1155(uint256 _tokenId, uint256 _amount, address _owner) public payable AvoidReentrancy {
+        require(_amount <= saleList[_tokenId][_owner].amount, "amount must be less than selling token amount");
+        IERC1155 contractErc1155 = IERC1155(saleList[_tokenId][_owner].contractAddress);
+        saleList[_tokenId][_owner].amount -= _amount;
+        contractErc1155.safeTransferFrom(_owner, msg.sender, _tokenId, _amount,"");
 
         if(msg.value == 0) {
-            uint TotalAmount = (saleList[_tokenId].price)*(saleList[_tokenId].amount);
+            uint TotalAmount = (saleList[_tokenId][_owner].price)*(saleList[_tokenId][_owner].amount);
             uint256 Fees = (55*TotalAmount)/10000;
-            token.transferFrom(msg.sender, ownerErc1155Token, (TotalAmount - Fees));
+            token.transferFrom(msg.sender, _owner, (TotalAmount - Fees));
             token.transferFrom(msg.sender, address(this), Fees);
         }
         else {
             uint256 remainingAmount = msg.value - (55*msg.value)/10000;
-            (bool sent, ) = ownerErc1155Token.call{value: remainingAmount}("");
+            (bool sent, ) = _owner.call{value: remainingAmount}("");
             require(sent, "fail to send");
         }
-        if(saleList[_tokenId].amount == 0){
-            delete saleList[_tokenId];
+        if(saleList[_tokenId][_owner].amount == 0){
+            delete saleList[_tokenId][_owner];
         }
-        emit TransferToken(msg.sender, ownerErc1155Token, _tokenId, _amount);
+        emit TransferToken(msg.sender, _owner, _tokenId,_amount);
     }
 
 
@@ -140,6 +129,5 @@ contract MarketPlace {
         require(sent, "fail to withdraw");
         uint256 amount = token.balanceOf(address(this));
         token.transfer(msg.sender, amount);
-        emit WithDraw(address(this) , msg.sender,  amount);
     }
 }
