@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.19;
+pragma solidity 0.8.18;
 
-contract A {
+contract ContractA {
     uint256 public Add;
     uint256 public Sub;
-    uint256 public intitotal;
+    uint256 public initotal;
     address public b;
 
     fallback(bytes calldata data) external returns (bytes memory) {
@@ -18,23 +18,12 @@ contract A {
     }
 
     function addition(uint256 _num) external {
-        intitotal += _num;
+        initotal += _num;
         Add = _num;
     }
 
     function subtraction(uint256 _num) external {
-        intitotal -= _num;
+        initotal -= _num;
         Sub = _num;
-    }
-}
-
-contract B {
-    uint256 public Add;
-    uint256 public Sub;
-    uint256 public intitotal;
-
-    function multi(uint256 _b) external returns(uint256){
-         intitotal = (Add-Sub);
-         return _b;
     }
 }
