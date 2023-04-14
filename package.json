@@ -1,0 +1,26 @@
+{
+  "name": "solidity-github",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aAnurag7/Blockchain-Assignment.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/aAnurag7/Blockchain-Assignment/issues"
+  },
+  "homepage": "https://github.com/aAnurag7/Blockchain-Assignment#readme",
+  "dependencies": {
+    "hardhat": "^2.13.1",
+    "hardhat-deploy": "^0.11.26"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^2.0.2"
+  }
+}
