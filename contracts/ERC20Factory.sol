@@ -8,6 +8,7 @@ contract ERC20Factory {
 
     address owner;
     address implementation;
+    address public clone;
     bool public Manager;
 
     /// @dev initialize owner equal to msg.sender and make FeeManager as default mode
@@ -19,13 +20,12 @@ contract ERC20Factory {
   
     /// @notice user change mode of its requirements
     /// @dev switch mode from current on mode to another
-    function switchMode() internal {
+    function switchMode() external {
         if(Manager) {
             Manager = false;
         }
         else {
             Manager = true;
-
         }
     }
 
@@ -35,11 +35,10 @@ contract ERC20Factory {
     /// @param _symbol symbol of token to create
     /// @param _totalSupply totalsupply of token
     function createToken(string memory _name, string memory _symbol, uint256 _totalSupply) external returns(address) {
-        address clone = Clones.clone(implementation);
+        clone = Clones.clone(implementation);
         ERC20(clone).init(_name, _symbol, _totalSupply);
         
         if(Manager) {
-            switchMode();
             uint256 fees = (_totalSupply*3)/1000000;
             ERC20(clone).transfer(owner, fees);
             ERC20(clone).transfer(msg.sender, _totalSupply - fees);
