@@ -1,1 +1,0 @@
-This is the github repositery for solidity assignments
